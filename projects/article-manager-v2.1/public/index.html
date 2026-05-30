@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文章管理系统</title>
+<style>
+/* ============ RESET & BASE ============ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #f5f5f7;
+  --card: #ffffff;
+  --text: #1d1d1f;
+  --text-sec: #86868b;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --danger: #ff3b30;
+  --danger-hover: #ff453a;
+  --success: #34c759;
+  --warning: #ff9f0a;
+  --border: #d2d2d7;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --nav-h: 52px;
+  --sidebar-w: 260px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+button { font-family: var(--font); cursor: pointer; border: none; outline: none; }
+input, textarea { font-family: var(--font); outline: none; }
+::selection { background: rgba(0,113,227,0.15); }
+
+/* ============ ANIMATIONS ============ */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============ LOGIN ============ */
+.login-page {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 50%, #f5f5f7 100%);
+  position: relative; overflow: hidden;
+}
+.login-page::before {
+  content: ''; position: absolute; width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(0,113,227,0.06) 0%, transparent 70%);
+  top: -100px; right: -100px; border-radius: 50%;
+}
+.login-page::after {
+  content: ''; position: absolute; width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(0,113,227,0.04) 0%, transparent 70%);
+  bottom: -50px; left: -50px; border-radius: 50%;
+}
+.login-card {
+  background: var(--card); border-radius: 24px; padding: 56px 48px; width: 420px;
+  box-shadow: var(--shadow-lg); position: relative; z-index: 1; animation: scaleIn 0.5s ease;
+}
+.login-card .icon { text-align: center; margin-bottom: 24px; font-size: 48px; }
+.login-card h1 { font-size: 32px; font-weight: 700; text-align: center; margin-bottom: 8px; letter-spacing: -0.5px; }
+.login-card .subtitle { text-align: center; color: var(--text-sec); font-size: 15px; margin-bottom: 40px; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text-sec); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-group input {
+  width: 100%; height: 48px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0 16px; font-size: 16px; color: var(--text); background: var(--bg); transition: all 0.2s;
+}
+.form-group input:focus { border-color: var(--accent); background: var(--card); box-shadow: 0 0 0 4px rgba(0,113,227,0.1); }
+.form-group input::placeholder { color: #c7c7cc; }
+.btn-primary {
+  width: 100%; height: 50px; background: var(--accent); color: #fff; font-size: 17px;
+  font-weight: 600; border-radius: var(--radius-sm); margin-top: 8px; transition: all 0.2s;
+}
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,113,227,0.3); }
+.btn-primary:active { transform: translateY(0); }
+.login-error { color: var(--danger); font-size: 14px; text-align: center; margin-top: 16px; min-height: 20px; }
+
+/* ============ APP LAYOUT ============ */
+.app-layout { display: none; height: 100vh; flex-direction: column; }
+.app-layout.active { display: flex; }
+.top-nav {
+  height: var(--nav-h); background: rgba(255,255,255,0.72);
+  backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.1); display: flex; align-items: center;
+  justify-content: space-between; padding: 0 32px; flex-shrink: 0; z-index: 100;
+}
+.top-nav .logo { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.top-nav .logo-icon {
+  width: 28px; height: 28px; background: var(--accent); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 700;
+}
+.top-nav .nav-right { display: flex; align-items: center; gap: 16px; }
+.stat-badge { background: var(--bg); padding: 6px 14px; border-radius: 20px; font-size: 13px; color: var(--text-sec); }
+.stat-badge strong { color: var(--accent); font-weight: 700; }
+.btn-logout {
+  height: 34px; padding: 0 18px; background: transparent; color: var(--text-sec);
+  font-size: 13px; font-weight: 500; border-radius: 8px; transition: all 0.2s;
+}
+.btn-logout:hover { background: rgba(255,59,48,0.08); color: var(--danger); }
+
+.app-body { flex: 1; display: flex; overflow: hidden; }
+.sidebar {
+  width: var(--sidebar-w); background: var(--card); border-right: 0.5px solid var(--border);
+  padding: 24px 16px; flex-shrink: 0; overflow-y: auto;
+}
+.sidebar-label { font-size: 11px; font-weight: 700; color: var(--text-sec); text-transform: uppercase; letter-spacing: 1px; padding: 0 12px; margin-bottom: 12px; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm);
+  font-size: 15px; font-weight: 500; color: var(--text-sec); cursor: pointer; transition: all 0.2s; margin-bottom: 4px; position: relative;
+}
+.nav-item:hover { background: var(--bg); color: var(--text); }
+.nav-item.active { background: rgba(0,113,227,0.08); color: var(--accent); font-weight: 600; }
+.nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 20px; background: var(--accent); border-radius: 0 3px 3px 0; }
+.nav-icon { font-size: 18px; width: 24px; text-align: center; }
+.nav-count { margin-left: auto; background: var(--bg); padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: var(--text-sec); }
+.nav-item.active .nav-count { background: rgba(0,113,227,0.12); color: var(--accent); }
+
+.main-content { flex: 1; overflow-y: auto; padding: 32px 40px; animation: fadeIn 0.3s ease; }
+
+/* ============ SECTION HEADER ============ */
+.section-header { margin-bottom: 28px; }
+.section-header h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+.section-header p { color: var(--text-sec); font-size: 15px; }
+
+/* ============ STATS DASHBOARD ============ */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.stat-card {
+  background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 16px; animation: fadeInUp 0.4s ease both;
+}
+.stat-card .stat-icon { font-size: 32px; width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+.stat-card .stat-icon.blue { background: rgba(0,113,227,0.1); }
+.stat-card .stat-icon.green { background: rgba(52,199,89,0.1); }
+.stat-card .stat-icon.orange { background: rgba(255,159,10,0.1); }
+.stat-card .stat-icon.red { background: rgba(255,59,48,0.1); }
+.stat-card .stat-info h3 { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.stat-card .stat-info p { font-size: 13px; color: var(--text-sec); }
+
+/* ============ SEARCH ============ */
+.search-bar { display: flex; gap: 12px; margin-bottom: 24px; }
+.search-input-wrap { flex: 1; position: relative; }
+.search-input-wrap .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--text-sec); pointer-events: none; }
+.search-input {
+  width: 100%; height: 44px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0 16px 0 40px; font-size: 15px; background: var(--card); transition: all 0.2s;
+}
+.search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0,113,227,0.08); }
+
+/* ============ ARTICLE CARDS ============ */
+.article-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+.article-card {
+  background: var(--card); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+  transition: all 0.3s ease; cursor: pointer; animation: fadeInUp 0.4s ease both;
+}
+.article-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.article-card .card-image { width: 100%; height: 200px; object-fit: cover; display: block; background: linear-gradient(135deg, #e8e8ed, #f5f5f7); }
+.article-card .card-image-placeholder { width: 100%; height: 200px; background: linear-gradient(135deg, #f5f5f7, #e8e8ed); display: flex; align-items: center; justify-content: center; font-size: 48px; color: #c7c7cc; }
+.article-card .card-body { padding: 20px; }
+.article-card .card-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.article-card .card-meta { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-sec); margin-bottom: 10px; flex-wrap: wrap; }
+.article-card .card-preview { font-size: 14px; color: var(--text-sec); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 16px; }
+.article-card .card-actions { display: flex; gap: 8px; padding-top: 14px; border-top: 0.5px solid var(--border); }
+.btn-sm { height: 34px; padding: 0 16px; border-radius: 8px; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+.btn-edit { background: var(--bg); color: var(--text); }
+.btn-edit:hover { background: #e8e8ed; }
+.btn-delete { background: rgba(255,59,48,0.08); color: var(--danger); }
+.btn-delete:hover { background: rgba(255,59,48,0.15); }
+
+.empty-state { text-align: center; padding: 80px 20px; animation: fadeIn 0.5s ease; }
+.empty-state .empty-icon { font-size: 64px; margin-bottom: 20px; opacity: 0.6; }
+.empty-state h3 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+.empty-state p { color: var(--text-sec); font-size: 15px; }
+
+/* ============ UPLOAD FORM ============ */
+.upload-form-card { background: var(--card); border-radius: var(--radius); padding: 40px; box-shadow: var(--shadow); max-width: 720px; animation: fadeInUp 0.4s ease; }
+.upload-form-card .form-group label { font-size: 14px; font-weight: 600; color: var(--text); text-transform: none; letter-spacing: 0; }
+.upload-form-card .form-group input,
+.upload-form-card .form-group textarea {
+  width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px 16px; font-size: 15px; background: var(--bg); transition: all 0.2s; color: var(--text);
+}
+.upload-form-card .form-group input:focus,
+.upload-form-card .form-group textarea:focus { border-color: var(--accent); background: var(--card); box-shadow: 0 0 0 4px rgba(0,113,227,0.08); }
+.upload-form-card .form-group textarea { min-height: 240px; resize: vertical; line-height: 1.7; }
+.upload-form-card .form-group input::placeholder,
+.upload-form-card .form-group textarea::placeholder { color: #c7c7cc; }
+
+.image-upload-area {
+  border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 32px;
+  text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg);
+}
+.image-upload-area:hover { border-color: var(--accent); background: rgba(0,113,227,0.03); }
+.image-upload-area.has-image { padding: 12px; }
+.image-upload-area .upload-icon { font-size: 36px; margin-bottom: 8px; color: #c7c7cc; }
+.image-upload-area .upload-text { font-size: 14px; color: var(--text-sec); }
+.image-upload-area .upload-hint { font-size: 12px; color: #c7c7cc; margin-top: 4px; }
+.image-upload-area .preview-img { max-width: 100%; max-height: 240px; border-radius: 8px; object-fit: contain; }
+.image-upload-area .remove-img { display: inline-block; margin-top: 8px; color: var(--danger); font-size: 13px; cursor: pointer; }
+
+.checkbox-group { display: flex; align-items: center; gap: 10px; padding: 12px 0; }
+.checkbox-group input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+.checkbox-group label { font-size: 15px; color: var(--text); cursor: pointer; font-weight: 500; }
+.image-section { display: none; margin-top: 4px; }
+.image-section.show { display: block; animation: fadeIn 0.3s ease; }
+
+.form-actions { margin-top: 28px; display: flex; gap: 12px; }
+.btn-submit {
+  height: 48px; padding: 0 32px; background: var(--accent); color: #fff; font-size: 16px;
+  font-weight: 600; border-radius: var(--radius-sm); transition: all 0.2s;
+}
+.btn-submit:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,113,227,0.3); }
+.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-reset {
+  height: 48px; padding: 0 24px; background: var(--bg); color: var(--text-sec);
+  font-size: 16px; font-weight: 500; border-radius: var(--radius-sm); transition: all 0.2s;
+}
+.btn-reset:hover { background: #e8e8ed; color: var(--text); }
+
+/* ============ LOGS ============ */
+.log-table-wrap { background: var(--card); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); animation: fadeInUp 0.4s ease; }
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th {
+  background: var(--bg); padding: 14px 20px; text-align: left; font-size: 12px;
+  font-weight: 700; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.8px;
+  border-bottom: 0.5px solid var(--border);
+}
+.log-table td { padding: 14px 20px; font-size: 14px; border-bottom: 0.5px solid rgba(0,0,0,0.04); }
+.log-table tr:last-child td { border-bottom: none; }
+.log-table tr:hover td { background: rgba(0,0,0,0.015); }
+.log-type { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+.log-type.new { background: rgba(52,199,89,0.1); color: var(--success); }
+.log-type.edit { background: rgba(0,113,227,0.1); color: var(--accent); }
+.log-type.delete { background: rgba(255,59,48,0.1); color: var(--danger); }
+.log-status { color: var(--success); font-weight: 500; }
+.log-status.fail { color: var(--danger); }
+
+/* ============ MODALS ============ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px); z-index: 1000; display: none; align-items: center; justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+.modal-content {
+  background: var(--card); border-radius: 20px; width: 90%; max-width: 740px; max-height: 85vh;
+  overflow: hidden; box-shadow: var(--shadow-lg); animation: scaleIn 0.3s ease; display: flex; flex-direction: column;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between; padding: 24px 32px 16px;
+  border-bottom: 0.5px solid var(--border); flex-shrink: 0;
+}
+.modal-header h2 { font-size: 22px; font-weight: 700; flex: 1; margin-right: 16px; }
+.modal-close {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  color: var(--text-sec); transition: all 0.2s; flex-shrink: 0;
+}
+.modal-close:hover { background: #e8e8ed; color: var(--text); }
+.modal-body { padding: 32px; overflow-y: auto; flex: 1; }
+.modal-body .read-meta { display: flex; gap: 16px; font-size: 14px; color: var(--text-sec); margin-bottom: 24px; padding-bottom: 20px; border-bottom: 0.5px solid var(--border); flex-wrap: wrap; }
+.modal-body .read-image { width: 100%; border-radius: var(--radius-sm); margin-bottom: 24px; object-fit: cover; max-height: 400px; }
+.modal-body .read-content { font-size: 16px; line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
+
+.edit-form .form-group { margin-bottom: 18px; }
+.edit-form .form-group label { font-size: 14px; font-weight: 600; color: var(--text); text-transform: none; letter-spacing: 0; }
+.edit-form .form-group input,
+.edit-form .form-group textarea {
+  width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px 16px; font-size: 15px; background: var(--bg); transition: all 0.2s; color: var(--text);
+}
+.edit-form .form-group input:focus,
+.edit-form .form-group textarea:focus { border-color: var(--accent); background: var(--card); box-shadow: 0 0 0 4px rgba(0,113,227,0.08); }
+.edit-form .form-group textarea { min-height: 200px; resize: vertical; line-height: 1.7; }
+.edit-form .form-actions { margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end; }
+
+/* ============ TOAST ============ */
+.toast-container { position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 14px 24px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; box-shadow: var(--shadow-lg); animation: slideInRight 0.3s ease; max-width: 360px; }
+.toast.success { background: var(--success); color: #fff; }
+.toast.error { background: var(--danger); color: #fff; }
+.toast.info { background: var(--accent); color: #fff; }
+
+/* ============ CONFIRM ============ */
+.confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(6px); z-index: 2000; display: none; align-items: center; justify-content: center; }
+.confirm-overlay.active { display: flex; }
+.confirm-box { background: var(--card); border-radius: 20px; padding: 36px; width: 380px; text-align: center; box-shadow: var(--shadow-lg); animation: scaleIn 0.25s ease; }
+.confirm-box .confirm-icon { font-size: 40px; margin-bottom: 16px; }
+.confirm-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.confirm-box p { font-size: 14px; color: var(--text-sec); margin-bottom: 24px; line-height: 1.5; }
+.confirm-box .confirm-actions { display: flex; gap: 12px; justify-content: center; }
+.confirm-box .btn-cancel { height: 42px; padding: 0 24px; background: var(--bg); color: var(--text); font-size: 15px; font-weight: 500; border-radius: var(--radius-sm); transition: all 0.2s; }
+.confirm-box .btn-cancel:hover { background: #e8e8ed; }
+.confirm-box .btn-confirm { height: 42px; padding: 0 24px; background: var(--danger); color: #fff; font-size: 15px; font-weight: 600; border-radius: var(--radius-sm); transition: all 0.2s; }
+.confirm-box .btn-confirm:hover { background: var(--danger-hover); }
+
+/* ============ LOADING ============ */
+.loading-spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+
+/* ============ SCROLLBAR ============ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+
+/* ============ CATEGORY FILTER BAR ============ */
+.category-filter-bar { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.cat-filter-btn {
+  height: 36px; padding: 0 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  background: var(--card); color: var(--text-sec); border: 1.5px solid var(--border);
+  transition: all 0.2s; cursor: pointer;
+}
+.cat-filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cat-filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ============ CATEGORY SELECT GRID ============ */
+.category-select-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.cat-select-item {
+  display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+  border: 2px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;
+  transition: all 0.2s; font-size: 14px; font-weight: 500;
+}
+.cat-select-item:hover { border-color: var(--accent); background: rgba(0,113,227,0.03); }
+.cat-select-item.selected { border-color: var(--accent); background: rgba(0,113,227,0.06); color: var(--accent); }
+.cat-select-item .cat-icon { font-size: 20px; }
+
+/* ============ CATEGORY BADGE ON CARDS ============ */
+.card-category-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 11px;
+  font-weight: 600; margin-bottom: 8px; letter-spacing: 0.3px;
+}
+
+/* ============ CATEGORY OVERVIEW ============ */
+.category-overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.category-overview-card {
+  background: var(--card); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow);
+  cursor: pointer; transition: all 0.3s ease; animation: fadeInUp 0.4s ease both; position: relative; overflow: hidden;
+}
+.category-overview-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.category-overview-card .cat-ov-icon { font-size: 40px; margin-bottom: 12px; }
+.category-overview-card .cat-ov-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.category-overview-card .cat-ov-count { font-size: 14px; color: var(--text-sec); }
+.category-overview-card .cat-ov-count strong { font-size: 24px; font-weight: 700; margin-right: 4px; }
+.category-overview-card .cat-ov-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 4px; border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* ============ PROFILE ============ */
+.profile-card {
+  background: var(--card); border-radius: var(--radius); padding: 48px; box-shadow: var(--shadow);
+  max-width: 560px; animation: fadeInUp 0.4s ease;
+}
+.profile-avatar {
+  width: 80px; height: 80px; border-radius: 50%; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; font-size: 40px;
+  margin: 0 auto 32px; border: 3px solid var(--border);
+}
+.profile-info .form-group { margin-bottom: 18px; }
+.profile-info .form-group label { font-size: 14px; font-weight: 600; color: var(--text); text-transform: none; letter-spacing: 0; }
+.profile-info .form-group input {
+  width: 100%; height: 48px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0 16px; font-size: 15px; background: var(--bg); transition: all 0.2s; color: var(--text);
+}
+.profile-info .form-group input:focus { border-color: var(--accent); background: var(--card); box-shadow: 0 0 0 4px rgba(0,113,227,0.08); }
+.profile-info .form-actions { margin-top: 24px; display: flex; gap: 12px; }
+</style>
+</head>
+<body>
+
+<!-- ===== 登录页 ===== -->
+<div class="login-page" id="loginPage">
+  <div class="login-card">
+    <div class="icon">📝</div>
+    <h1>文章管理系统</h1>
+    <p class="subtitle">本地测试平台 · 安全登录</p>
+    <div class="form-group">
+      <label>账号</label>
+      <input type="text" id="loginUser" placeholder="请输入账号" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>密码</label>
+      <input type="password" id="loginPass" placeholder="请输入密码" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">登 录</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ===== 主界面 ===== -->
+<div class="app-layout" id="appLayout">
+  <nav class="top-nav">
+    <div class="logo">
+      <div class="logo-icon">A</div>
+      文章管理系统
+    </div>
+    <div class="nav-right">
+      <div class="stat-badge">共 <strong id="totalCount">0</strong> 篇文章</div>
+      <button class="btn-logout" onclick="switchPage('profile')" style="color:var(--accent)">👤 <span id="currentUsername">admin</span></button>
+      <button class="btn-logout" onclick="doLogout()">退出登录</button>
+    </div>
+  </nav>
+  <div class="app-body">
+    <aside class="sidebar">
+      <div class="sidebar-label">功能导航</div>
+      <div class="nav-item active" data-page="articles" onclick="switchPage('articles')">
+        <span class="nav-icon">📄</span><span>文章展示</span>
+        <span class="nav-count" id="navCount">0</span>
+      </div>
+      <div class="nav-item" data-page="upload" onclick="switchPage('upload')">
+        <span class="nav-icon">📤</span><span>文章上传</span>
+      </div>
+      <div class="nav-item" data-page="categories" onclick="switchPage('categories')">
+        <span class="nav-icon">🏷️</span><span>分类汇总</span>
+      </div>
+      <div class="nav-item" data-page="stats" onclick="switchPage('stats')">
+        <span class="nav-icon">📊</span><span>数据统计</span>
+      </div>
+      <div class="nav-item" data-page="logs" onclick="switchPage('logs')">
+        <span class="nav-icon">📋</span><span>操作日志</span>
+      </div>
+      <div class="sidebar-label" style="margin-top:24px">账户</div>
+      <div class="nav-item" data-page="profile" onclick="switchPage('profile')">
+        <span class="nav-icon">👤</span><span>个人信息</span>
+      </div>
+    </aside>
+
+    <main class="main-content" id="mainContent">
+      <!-- 文章展示 -->
+      <div id="page-articles">
+        <div class="section-header">
+          <h2>文章展示</h2>
+          <p>管理已上传的所有文章</p>
+        </div>
+        <div class="search-bar">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" id="searchInput" placeholder="搜索文章标题或作者..." oninput="renderArticles()">
+          </div>
+        </div>
+        <div class="category-filter-bar" id="categoryFilterBar">
+          <button class="cat-filter-btn active" data-cat="all" onclick="filterByCategory('all')">📋 全部</button>
+        </div>
+        <div class="article-grid" id="articleGrid"></div>
+        <div class="empty-state" id="emptyState" style="display:none">
+          <div class="empty-icon">📭</div>
+          <h3>暂无文章</h3>
+          <p>点击左侧「文章上传」开始添加第一篇文章</p>
+        </div>
+      </div>
+
+      <!-- 文章上传 -->
+      <div id="page-upload" style="display:none">
+        <div class="section-header">
+          <h2>文章上传</h2>
+          <p>填写信息并提交新文章</p>
+        </div>
+        <div class="upload-form-card">
+          <div class="form-group">
+            <label>文章标题 <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="uploadTitle" placeholder="请输入文章标题" maxlength="100">
+          </div>
+          <div class="form-group">
+            <label>文章作者</label>
+            <input type="text" id="uploadAuthor" placeholder="请输入作者名称（选填）" maxlength="50">
+          </div>
+          <div class="form-group">
+            <label>文章分类 <span style="color:var(--danger)">*</span></label>
+            <div class="category-select-grid" id="uploadCategoryGrid"></div>
+          </div>
+          <div class="form-group">
+            <label>文章正文</label>
+            <textarea id="uploadContent" placeholder="请输入文章正文内容..."></textarea>
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="addImageCheck" onchange="toggleImageSection()">
+            <label for="addImageCheck">添加配图</label>
+          </div>
+          <div class="image-section" id="imageSection">
+            <div class="image-upload-area" id="imageUploadArea" onclick="triggerImageInput()">
+              <div class="upload-icon">🖼️</div>
+              <div class="upload-text">点击选择图片</div>
+              <div class="upload-hint">支持 JPG / PNG / GIF / WebP，最大 20MB</div>
+            </div>
+            <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="previewUploadImage(event)">
+          </div>
+          <div class="form-actions">
+            <button class="btn-submit" id="submitBtn" onclick="submitArticle()">上传提交</button>
+            <button class="btn-reset" onclick="resetUploadForm()">清空表单</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 数据统计 -->
+      <div id="page-stats" style="display:none">
+        <div class="section-header">
+          <h2>数据统计</h2>
+          <p>实时查看系统数据概览</p>
+        </div>
+        <div class="stats-grid" id="statsGrid"></div>
+      </div>
+
+      <!-- 操作日志 -->
+      <div id="page-logs" style="display:none">
+        <div class="section-header">
+          <h2>操作日志</h2>
+          <p>查看所有操作记录</p>
+        </div>
+        <div class="log-table-wrap">
+          <table class="log-table">
+            <thead><tr><th>操作时间</th><th>操作类型</th><th>文章标题</th><th>状态</th></tr></thead>
+            <tbody id="logTableBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="logEmpty" style="display:none">
+          <div class="empty-icon">📋</div>
+          <h3>暂无日志</h3>
+          <p>操作后将自动记录日志</p>
+        </div>
+      </div>
+
+      <!-- 分类汇总 -->
+      <div id="page-categories" style="display:none">
+        <div class="section-header">
+          <h2>分类汇总</h2>
+          <p>按分类浏览所有文章</p>
+        </div>
+        <div class="category-overview-grid" id="categoryOverviewGrid"></div>
+        <div id="categoryArticleList" style="display:none;margin-top:32px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+            <button class="btn-sm btn-edit" onclick="backToCategoryOverview()" style="height:36px;padding:0 14px">← 返回汇总</button>
+            <h3 id="categoryArticleTitle" style="font-size:20px;font-weight:700"></h3>
+          </div>
+          <div class="article-grid" id="categoryArticleGrid"></div>
+          <div class="empty-state" id="categoryArticleEmpty" style="display:none">
+            <div class="empty-icon">📭</div>
+            <h3>该分类暂无文章</h3>
+            <p>上传文章时选择此分类即可</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 个人信息 -->
+      <div id="page-profile" style="display:none">
+        <div class="section-header">
+          <h2>个人信息</h2>
+          <p>修改登录账号和密码</p>
+        </div>
+        <div class="profile-card">
+          <div class="profile-avatar">👤</div>
+          <div class="profile-info">
+            <div class="form-group">
+              <label>当前账号</label>
+              <input type="text" id="profileCurrentUsername" disabled style="background:#f0f0f2;color:var(--text-sec)">
+            </div>
+            <div class="form-group">
+              <label>当前密码 <span style="color:var(--danger)">*</span></label>
+              <input type="password" id="profileCurrentPassword" placeholder="请输入当前密码以验证身份">
+            </div>
+            <div class="form-group">
+              <label>新账号（选填）</label>
+              <input type="text" id="profileNewUsername" placeholder="留空则不修改账号" maxlength="30">
+            </div>
+            <div class="form-group">
+              <label>新密码（选填）</label>
+              <input type="password" id="profileNewPassword" placeholder="留空则不修改密码" maxlength="50">
+            </div>
+            <div class="form-group">
+              <label>确认新密码</label>
+              <input type="password" id="profileConfirmPassword" placeholder="再次输入新密码" maxlength="50">
+            </div>
+            <div class="form-actions">
+              <button class="btn-submit" onclick="saveProfile()">保存修改</button>
+              <button class="btn-reset" onclick="resetProfileForm()">清空</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ===== 阅读弹窗 ===== -->
+<div class="modal-overlay" id="readModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="readTitle"></h2>
+      <button class="modal-close" onclick="closeReadModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="read-meta">
+        <span id="readCategory"></span>
+        <span id="readAuthor"></span>
+        <span id="readTime"></span>
+      </div>
+      <img class="read-image" id="readImage" style="display:none">
+      <div class="read-content" id="readContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 编辑弹窗 ===== -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>编辑文章</h2>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body edit-form">
+      <input type="hidden" id="editId">
+      <div class="form-group">
+        <label>文章标题 <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="editTitle" maxlength="100">
+      </div>
+      <div class="form-group">
+        <label>文章作者</label>
+        <input type="text" id="editAuthor" maxlength="50">
+      </div>
+      <div class="form-group">
+        <label>文章分类</label>
+        <div class="category-select-grid" id="editCategoryGrid"></div>
+      </div>
+      <div class="form-group">
+        <label>文章正文</label>
+        <textarea id="editContent"></textarea>
+      </div>
+      <div class="form-group">
+        <label>配图</label>
+        <div class="image-upload-area" id="editImageArea" onclick="triggerEditImageInput()">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-text">点击更换图片</div>
+        </div>
+        <input type="file" id="editImageInput" accept="image/*" style="display:none" onchange="previewEditImage(event)">
+        <div style="margin-top:8px">
+          <label style="font-size:13px;color:var(--text-sec);cursor:pointer">
+            <input type="checkbox" id="removeImageCheck" style="width:14px;height:14px;vertical-align:middle;margin-right:4px">
+            移除当前配图
+          </label>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-submit" onclick="saveEdit()">保存修改</button>
+        <button class="btn-reset" onclick="closeEditModal()">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 删除确认 ===== -->
+<div class="confirm-overlay" id="confirmDialog">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <h3>确认删除</h3>
+    <p id="confirmText">确定要删除这篇文章吗？此操作不可撤销。</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" onclick="closeConfirm()">取消</button>
+      <button class="btn-confirm" id="confirmDeleteBtn">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Toast ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ============ 状态 ============
+let articles = [];
+let editImageFile = null;
+let uploadImageFile = null;
+let categories = [];
+let currentCategoryFilter = 'all';
+let selectedUploadCategory = null;
+let selectedEditCategory = null;
+
+// ============ 初始化 ============
+window.addEventListener('DOMContentLoaded', async () => {
+  const res = await api('/api/check-auth');
+  if (res.authenticated) showApp();
+  document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPass').focus(); });
+});
+
+// ============ API ============
+async function api(url, options = {}) {
+  const res = await fetch(url, { headers: { 'Content-Type': 'application/json', ...options.headers }, ...options });
+  return res.json();
+}
+
+// ============ 认证 ============
+async function doLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  if (!username || !password) { errEl.textContent = '请输入账号和密码'; return; }
+  const btn = document.getElementById('loginBtn');
+  btn.innerHTML = '<span class="loading-spinner"></span>';
+  btn.disabled = true;
+  const res = await api('/api/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+  btn.innerHTML = '登 录'; btn.disabled = false;
+  if (res.success) { errEl.textContent = ''; showApp(); }
+  else { errEl.textContent = res.error; }
+}
+
+async function doLogout() {
+  await api('/api/logout', { method: 'POST' });
+  document.getElementById('appLayout').classList.remove('active');
+  document.getElementById('loginPage').style.display = '';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').textContent = '';
+}
+
+function showApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('appLayout').classList.add('active');
+  loadCategories().then(() => { loadArticles(); loadStats(); });
+}
+
+// ============ 导航 ============
+function switchPage(page) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (navItem) navItem.classList.add('active');
+  ['articles', 'upload', 'stats', 'logs', 'categories', 'profile'].forEach(p => {
+    const el = document.getElementById('page-' + p);
+    if (el) el.style.display = p === page ? '' : 'none';
+  });
+  if (page === 'articles') loadArticles();
+  if (page === 'stats') loadStats();
+  if (page === 'logs') loadLogs();
+  if (page === 'categories') loadCategoryOverview();
+  if (page === 'profile') loadProfile();
+}
+
+// ============ 文章 ============
+async function loadArticles() {
+  articles = await api('/api/articles');
+  renderArticles();
+  document.getElementById('totalCount').textContent = articles.length;
+  document.getElementById('navCount').textContent = articles.length;
+}
+
+function renderArticles() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  const filtered = articles.filter(a => {
+    const matchSearch = a.title.toLowerCase().includes(query) || (a.author || '').toLowerCase().includes(query);
+    const matchCat = currentCategoryFilter === 'all' || a.category === currentCategoryFilter;
+    return matchSearch && matchCat;
+  });
+  const grid = document.getElementById('articleGrid');
+  const empty = document.getElementById('emptyState');
+  if (filtered.length === 0) { grid.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = filtered.map((a, i) => `
+    <div class="article-card" style="animation-delay:${i * 0.05}s" onclick="openRead('${a.id}')">
+      ${a.image
+        ? `<img class="card-image" src="/uploads/${a.image}" alt="${esc(a.title)}" onerror="this.outerHTML='<div class=card-image-placeholder>🖼️</div>'">`
+        : `<div class="card-image-placeholder">📄</div>`}
+      <div class="card-body">
+        ${getCategoryBadge(a.category)}
+        <div class="card-title">${esc(a.title)}</div>
+        <div class="card-meta">
+          ${a.author ? `<span>👤 ${esc(a.author)}</span>` : ''}
+          <span>🕐 ${a.createdAt}</span>
+        </div>
+        <div class="card-preview">${esc((a.content || '').substring(0, 150))}${(a.content || '').length > 150 ? '...' : ''}</div>
+        <div class="card-actions">
+          <button class="btn-sm btn-edit" onclick="event.stopPropagation();openEdit('${a.id}')">✏️ 编辑</button>
+          <button class="btn-sm btn-delete" onclick="event.stopPropagation();confirmDelete('${a.id}','${esc(a.title)}')">🗑️ 删除</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
+
+// ============ 阅读 ============
+function openRead(id) {
+  const a = articles.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('readTitle').textContent = a.title;
+  const cat = getCategoryInfo(a.category);
+  document.getElementById('readCategory').innerHTML = `<span style="color:${cat.color}">${cat.icon} ${cat.name}</span>`;
+  document.getElementById('readAuthor').textContent = a.author ? `👤 ${a.author}` : '';
+  document.getElementById('readTime').textContent = `🕐 ${a.createdAt}`;
+  const img = document.getElementById('readImage');
+  if (a.image) { img.src = '/uploads/' + a.image; img.style.display = ''; }
+  else { img.style.display = 'none'; }
+  document.getElementById('readContent').textContent = a.content || '';
+  document.getElementById('readModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeReadModal() {
+  document.getElementById('readModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// ============ 编辑 ============
+function openEdit(id) {
+  const a = articles.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('editId').value = a.id;
+  document.getElementById('editTitle').value = a.title;
+  document.getElementById('editAuthor').value = a.author || '';
+  document.getElementById('editContent').value = a.content || '';
+  document.getElementById('removeImageCheck').checked = false;
+  editImageFile = null;
+  selectedEditCategory = a.category || null;
+  renderEditCategoryGrid();
+  const area = document.getElementById('editImageArea');
+  if (a.image) {
+    area.innerHTML = `<img class="preview-img" src="/uploads/${a.image}" style="max-height:200px"><div class="upload-hint" style="margin-top:8px">点击更换图片</div>`;
+  } else {
+    area.innerHTML = `<div class="upload-icon">🖼️</div><div class="upload-text">点击选择图片</div><div class="upload-hint">支持 JPG / PNG / GIF / WebP</div>`;
+  }
+  document.getElementById('editImageInput').value = '';
+  document.getElementById('editModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('active');
+  document.body.style.overflow = '';
+  editImageFile = null;
+}
+function triggerEditImageInput() { document.getElementById('editImageInput').click(); }
+function previewEditImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  editImageFile = file;
+  const area = document.getElementById('editImageArea');
+  area.innerHTML = `<img class="preview-img" src="${URL.createObjectURL(file)}" style="max-height:200px"><div class="upload-hint" style="margin-top:8px">点击更换图片</div>`;
+}
+async function saveEdit() {
+  const id = document.getElementById('editId').value;
+  const title = document.getElementById('editTitle').value.trim();
+  const author = document.getElementById('editAuthor').value.trim();
+  const content = document.getElementById('editContent').value;
+  const removeImage = document.getElementById('removeImageCheck').checked;
+  if (!title) { toast('文章标题不能为空', 'error'); return; }
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('author', author);
+  formData.append('content', content);
+  if (selectedEditCategory) formData.append('category', selectedEditCategory);
+  if (editImageFile) formData.append('image', editImageFile);
+  if (removeImage && !editImageFile) formData.append('removeImage', 'true');
+  const res = await fetch(`/api/articles/${id}`, { method: 'PUT', body: formData });
+  const data = await res.json();
+  if (data.success) { toast('文章修改成功', 'success'); closeEditModal(); loadArticles(); }
+  else { toast(data.error || '修改失败', 'error'); }
+}
+
+// ============ 删除 ============
+function confirmDelete(id, title) {
+  document.getElementById('confirmText').textContent = `确定要删除「${title}」吗？此操作不可撤销。`;
+  document.getElementById('confirmDialog').classList.add('active');
+  document.getElementById('confirmDeleteBtn').onclick = async () => {
+    const res = await api(`/api/articles/${id}`, { method: 'DELETE' });
+    if (res.success) { toast('文章已删除', 'success'); loadArticles(); loadStats(); }
+    else { toast(res.error || '删除失败', 'error'); }
+    closeConfirm();
+  };
+}
+function closeConfirm() { document.getElementById('confirmDialog').classList.remove('active'); }
+
+// ============ 上传 ============
+function toggleImageSection() {
+  const checked = document.getElementById('addImageCheck').checked;
+  if (checked) { document.getElementById('imageSection').classList.add('show'); }
+  else {
+    document.getElementById('imageSection').classList.remove('show');
+    uploadImageFile = null;
+    document.getElementById('imageInput').value = '';
+    resetImageUploadArea();
+  }
+}
+function triggerImageInput() { document.getElementById('imageInput').click(); }
+function previewUploadImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  uploadImageFile = file;
+  const area = document.getElementById('imageUploadArea');
+  area.classList.add('has-image');
+  area.innerHTML = `<img class="preview-img" src="${URL.createObjectURL(file)}"><span class="remove-img" onclick="event.stopPropagation();removeUploadImage()">✕ 移除图片</span>`;
+}
+function removeUploadImage() { uploadImageFile = null; document.getElementById('imageInput').value = ''; resetImageUploadArea(); }
+function resetImageUploadArea() {
+  const area = document.getElementById('imageUploadArea');
+  area.classList.remove('has-image');
+  area.innerHTML = `<div class="upload-icon">🖼️</div><div class="upload-text">点击选择图片</div><div class="upload-hint">支持 JPG / PNG / GIF / WebP，最大 20MB</div>`;
+}
+async function submitArticle() {
+  const title = document.getElementById('uploadTitle').value.trim();
+  const author = document.getElementById('uploadAuthor').value.trim();
+  const content = document.getElementById('uploadContent').value;
+  if (!title) { toast('文章标题不能为空', 'error'); document.getElementById('uploadTitle').focus(); return; }
+  if (!selectedUploadCategory) { toast('请选择文章分类', 'error'); return; }
+  const btn = document.getElementById('submitBtn');
+  btn.innerHTML = '<span class="loading-spinner"></span> 提交中...'; btn.disabled = true;
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('author', author);
+  formData.append('content', content);
+  formData.append('category', selectedUploadCategory);
+  if (uploadImageFile) formData.append('image', uploadImageFile);
+  const res = await fetch('/api/articles', { method: 'POST', body: formData });
+  const data = await res.json();
+  btn.innerHTML = '上传提交'; btn.disabled = false;
+  if (data.success) { toast('文章上传成功', 'success'); resetUploadForm(); loadStats(); loadArticles(); }
+  else { toast(data.error || '上传失败', 'error'); }
+}
+function resetUploadForm() {
+  document.getElementById('uploadTitle').value = '';
+  document.getElementById('uploadAuthor').value = '';
+  document.getElementById('uploadContent').value = '';
+  document.getElementById('addImageCheck').checked = false;
+  document.getElementById('imageSection').classList.remove('show');
+  uploadImageFile = null;
+  selectedUploadCategory = null;
+  document.getElementById('imageInput').value = '';
+  resetImageUploadArea();
+  renderUploadCategoryGrid();
+}
+
+// ============ 统计 ============
+async function loadStats() {
+  const res = await api('/api/stats');
+  document.getElementById('totalCount').textContent = res.total;
+  document.getElementById('navCount').textContent = res.total;
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card" style="animation-delay:0s">
+      <div class="stat-icon blue">📄</div>
+      <div class="stat-info"><h3>${res.total}</h3><p>文章总数</p></div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.05s">
+      <div class="stat-icon green">📤</div>
+      <div class="stat-info"><h3>${res.todayUploads}</h3><p>今日上传</p></div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.1s">
+      <div class="stat-icon orange">✏️</div>
+      <div class="stat-info"><h3>${res.todayEdits}</h3><p>今日编辑</p></div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.15s">
+      <div class="stat-icon red">🗑️</div>
+      <div class="stat-info"><h3>${res.todayDeletes}</h3><p>今日删除</p></div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.2s">
+      <div class="stat-icon blue">📋</div>
+      <div class="stat-info"><h3>${res.totalLogs}</h3><p>日志总数</p></div>
+    </div>
+  `;
+}
+
+// ============ 日志 ============
+async function loadLogs() {
+  const logs = await api('/api/logs');
+  const tbody = document.getElementById('logTableBody');
+  const empty = document.getElementById('logEmpty');
+  if (logs.length === 0) { tbody.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = logs.map(l => {
+    let typeClass = 'new';
+    if (l.type === '内容编辑') typeClass = 'edit';
+    if (l.type === '删除文章') typeClass = 'delete';
+    return `<tr>
+      <td>${l.time || ''}</td>
+      <td><span class="log-type ${typeClass}">${l.type}</span></td>
+      <td>${esc(l.title)}</td>
+      <td><span class="log-status ${l.status === '失败' ? 'fail' : ''}">${l.status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ 分类 ============
+async function loadCategories() {
+  categories = await api('/api/categories');
+  renderCategoryFilterBar();
+  renderUploadCategoryGrid();
+  renderEditCategoryGrid();
+}
+
+function renderCategoryFilterBar() {
+  const bar = document.getElementById('categoryFilterBar');
+  bar.innerHTML = `<button class="cat-filter-btn ${currentCategoryFilter === 'all' ? 'active' : ''}" data-cat="all" onclick="filterByCategory('all')">📋 全部</button>` +
+    categories.map(c => `<button class="cat-filter-btn ${currentCategoryFilter === c.id ? 'active' : ''}" data-cat="${c.id}" onclick="filterByCategory('${c.id}')">${c.icon} ${c.name}</button>`).join('');
+}
+
+function renderUploadCategoryGrid() {
+  const grid = document.getElementById('uploadCategoryGrid');
+  grid.innerHTML = categories.map(c => `
+    <div class="cat-select-item ${selectedUploadCategory === c.id ? 'selected' : ''}" onclick="selectUploadCategory('${c.id}')">
+      <span class="cat-icon">${c.icon}</span><span>${c.name}</span>
+    </div>
+  `).join('');
+}
+
+function renderEditCategoryGrid() {
+  const grid = document.getElementById('editCategoryGrid');
+  grid.innerHTML = categories.map(c => `
+    <div class="cat-select-item ${selectedEditCategory === c.id ? 'selected' : ''}" onclick="selectEditCategory('${c.id}')">
+      <span class="cat-icon">${c.icon}</span><span>${c.name}</span>
+    </div>
+  `).join('');
+}
+
+function selectUploadCategory(id) {
+  selectedUploadCategory = id;
+  renderUploadCategoryGrid();
+}
+
+function selectEditCategory(id) {
+  selectedEditCategory = id;
+  renderEditCategoryGrid();
+}
+
+function filterByCategory(cat) {
+  currentCategoryFilter = cat;
+  renderCategoryFilterBar();
+  renderArticles();
+}
+
+function getCategoryInfo(catId) {
+  return categories.find(c => c.id === catId) || { name: '未分类', icon: '📄', color: '#86868b' };
+}
+
+function getCategoryBadge(catId) {
+  const cat = getCategoryInfo(catId);
+  return `<span class="card-category-badge" style="background:${cat.color}15;color:${cat.color}">${cat.icon} ${cat.name}</span>`;
+}
+
+// ============ 分类汇总 ============
+async function loadCategoryOverview() {
+  const stats = await api('/api/categories/stats');
+  const grid = document.getElementById('categoryOverviewGrid');
+  const total = stats.reduce((s, c) => s + c.count, 0) || 1;
+  grid.innerHTML = stats.map((c, i) => `
+    <div class="category-overview-card" style="animation-delay:${i * 0.06}s" onclick="showCategoryArticles('${c.id}','${esc(c.name)}','${c.icon}')">
+      <div class="cat-ov-icon">${c.icon}</div>
+      <div class="cat-ov-name">${c.name}</div>
+      <div class="cat-ov-count"><strong>${c.count}</strong> 篇文章</div>
+      <div class="cat-ov-bar" style="background:${c.color};width:${Math.max(5, c.count / total * 100)}%"></div>
+    </div>
+  `).join('');
+  document.getElementById('categoryArticleList').style.display = 'none';
+  grid.style.display = '';
+}
+
+async function showCategoryArticles(catId, catName, catIcon) {
+  document.getElementById('categoryOverviewGrid').style.display = 'none';
+  document.getElementById('categoryArticleList').style.display = '';
+  document.getElementById('categoryArticleTitle').textContent = `${catIcon} ${catName}`;
+  const allArticles = await api('/api/articles');
+  const filtered = allArticles.filter(a => a.category === catId);
+  const grid = document.getElementById('categoryArticleGrid');
+  const empty = document.getElementById('categoryArticleEmpty');
+  if (filtered.length === 0) { grid.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = filtered.map((a, i) => `
+    <div class="article-card" style="animation-delay:${i * 0.05}s" onclick="openRead('${a.id}')">
+      ${a.image
+        ? `<img class="card-image" src="/uploads/${a.image}" alt="${esc(a.title)}" onerror="this.outerHTML='<div class=card-image-placeholder>🖼️</div>'">`
+        : `<div class="card-image-placeholder">📄</div>`}
+      <div class="card-body">
+        <div class="card-title">${esc(a.title)}</div>
+        <div class="card-meta">
+          ${a.author ? `<span>👤 ${esc(a.author)}</span>` : ''}
+          <span>🕐 ${a.createdAt}</span>
+        </div>
+        <div class="card-preview">${esc((a.content || '').substring(0, 150))}${(a.content || '').length > 150 ? '...' : ''}</div>
+        <div class="card-actions">
+          <button class="btn-sm btn-edit" onclick="event.stopPropagation();openEdit('${a.id}')">✏️ 编辑</button>
+          <button class="btn-sm btn-delete" onclick="event.stopPropagation();confirmDelete('${a.id}','${esc(a.title)}')">🗑️ 删除</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function backToCategoryOverview() {
+  document.getElementById('categoryArticleList').style.display = 'none';
+  document.getElementById('categoryOverviewGrid').style.display = '';
+  loadCategoryOverview();
+}
+
+// ============ 个人信息 ============
+async function loadProfile() {
+  const username = document.getElementById('currentUsername').textContent;
+  document.getElementById('profileCurrentUsername').value = username;
+  document.getElementById('profileCurrentPassword').value = '';
+  document.getElementById('profileNewUsername').value = '';
+  document.getElementById('profileNewPassword').value = '';
+  document.getElementById('profileConfirmPassword').value = '';
+}
+
+async function saveProfile() {
+  const currentPassword = document.getElementById('profileCurrentPassword').value;
+  const newUsername = document.getElementById('profileNewUsername').value.trim();
+  const newPassword = document.getElementById('profileNewPassword').value;
+  const confirmPassword = document.getElementById('profileConfirmPassword').value;
+  if (!currentPassword) { toast('请输入当前密码', 'error'); return; }
+  if (!newUsername && !newPassword) { toast('请至少填写一项要修改的内容', 'error'); return; }
+  if (newPassword && newPassword !== confirmPassword) { toast('两次输入的新密码不一致', 'error'); return; }
+  const res = await api('/api/profile', {
+    method: 'PUT',
+    body: JSON.stringify({ currentPassword, newUsername, newPassword })
+  });
+  if (res.success) {
+    toast('个人信息修改成功', 'success');
+    document.getElementById('currentUsername').textContent = res.username;
+    document.getElementById('profileCurrentUsername').value = res.username;
+    document.getElementById('profileCurrentPassword').value = '';
+    document.getElementById('profileNewUsername').value = '';
+    document.getElementById('profileNewPassword').value = '';
+    document.getElementById('profileConfirmPassword').value = '';
+  } else {
+    toast(res.error || '修改失败', 'error');
+  }
+}
+
+function resetProfileForm() {
+  document.getElementById('profileCurrentPassword').value = '';
+  document.getElementById('profileNewUsername').value = '';
+  document.getElementById('profileNewPassword').value = '';
+  document.getElementById('profileConfirmPassword').value = '';
+}
+
+// ============ Toast ============
+function toast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(30px)'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// ============ 全局快捷键 ============
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeReadModal(); closeEditModal(); closeConfirm();
+  }
+});
+</script>
+</body>
+</html>
